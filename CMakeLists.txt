@@ -31,12 +31,15 @@ include_directories(
     "$ENV{BENCHMARK_INCLUDE_DIR}"
     "$ENV{FMT_INCLUDE_DIR}"
     "$ENV{BOOST_INCLUDE_DIR}"
-    "$ENV{FASTFORMAT_INCLUDE_DIR}"
-    "$ENV{STLSOFT_INCLUDE_DIR}"     # required by fastformat
 )
 
 set (PROJECT_LIB_DIR "${PROJECT_SOURCE_DIR}/lib")
 if (MSVC)
+    include_directories(
+        "$ENV{FASTFORMAT_INCLUDE_DIR}"
+        "$ENV{STLSOFT_INCLUDE_DIR}"     # required by fastformat
+    )
+
     if (MSVC_X86_64)
         set (LIBRARIES
             shlwapi.lib
@@ -58,6 +61,13 @@ if (MSVC)
             optimized "${PROJECT_LIB_DIR}/win32/release/fastformat.0.core.vc14.dll.lib"
         )
     endif()
+elseif (APPLE)
+    add_definitions(-DDISABLE_FASTFORMAT)
+
+    set (LIBRARIES
+        "${PROJECT_LIB_DIR}/macos/libbenchmark.a"
+        "${PROJECT_LIB_DIR}/macos/libfmt.a"
+    )
 endif()
 
 set (SOURCE_FILES

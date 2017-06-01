@@ -12,9 +12,11 @@
 
 #include <tinyformat/tinyformat.h>
 
-#define FASTFORMAT_NO_VERSION_NAG
-#include <fastformat/fastformat.hpp>
-#include <fastformat/shims/conversion/filter_type/reals.hpp>
+#if !defined(DISABLE_FASTFORMAT)
+#   define FASTFORMAT_NO_VERSION_NAG
+#   include <fastformat/fastformat.hpp>
+#   include <fastformat/shims/conversion/filter_type/reals.hpp>
+#endif
 
 using std::cout;
 using std::endl;
@@ -28,9 +30,15 @@ static void test_snprintf(benchmark::State& state)
 {
     while (state.KeepRunning())
     {
+#if defined(_MSC_VER)
         int n = _scprintf("%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
         std::string r(n + 1, 0);
         _snprintf_s(&r[0], n + 1, _TRUNCATE, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+#else
+        int n = snprintf(nullptr, 0, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        std::string r(n + 1, 0);
+        snprintf(&r[0], n + 1, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+#endif
         r.pop_back();
         benchmark::DoNotOptimize(r.c_str());
     }
@@ -41,7 +49,11 @@ static void test_snprintf_stackbuf(benchmark::State& state)
     while (state.KeepRunning())
     {
         char buf[512];
+#if defined(_MSC_VER)
         _snprintf_s(buf, _TRUNCATE, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+#else
+        snprintf(buf, sizeof(buf), "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+#endif
         benchmark::DoNotOptimize(buf);
     }
 }
@@ -78,6 +90,7 @@ static void test_boost_format(benchmark::State& state)
     }
 }
 
+#if !defined(DISABLE_FASTFORMAT)
 static void test_fastformat(benchmark::State& state)
 {
     while (state.KeepRunning())
@@ -88,6 +101,7 @@ static void test_fastformat(benchmark::State& state)
         benchmark::DoNotOptimize(r.c_str());
     }
 }
+#endif
 
 static void test_tinyformat(benchmark::State& state)
 {
@@ -102,7 +116,10 @@ BENCHMARK(test_snprintf);
 BENCHMARK(test_snprintf_stackbuf);
 BENCHMARK(test_sstream);
 BENCHMARK(test_fmt);
+BENCHMARK(test_boost_format);
+#if !defined(DISABLE_FASTFORMAT)
 BENCHMARK(test_fastformat);
+#endif
 BENCHMARK(test_tinyformat);
 
 BENCHMARK_MAIN();

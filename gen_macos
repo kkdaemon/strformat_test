@@ -1,0 +1,8 @@
+#! /bin/bash
+
+mkdir -p build/macos
+cd build/macos
+
+export BENCHMARK_INCLUDE_DIR=/Users/max/projects/misc/strformat_test/benchmark/include
+export FMT_INCLUDE_DIR=/Users/max/projects/misc/strformat_test/fmt
+cmake -G "Xcode" ../..
