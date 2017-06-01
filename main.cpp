@@ -1,0 +1,108 @@
+#include <cstdio>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+#include <benchmark/benchmark.h>
+
+#include <fmt/format.h>
+#include <fmt/printf.h>
+
+#include <boost/format.hpp>
+
+#include <tinyformat/tinyformat.h>
+
+#define FASTFORMAT_NO_VERSION_NAG
+#include <fastformat/fastformat.hpp>
+#include <fastformat/shims/conversion/filter_type/reals.hpp>
+
+using std::cout;
+using std::endl;
+
+int i = 33;
+long long ll = 1024ll * 1024ll * 1024ll * 1024ll * 34ll;
+double d = -3.564556;
+const char s[] = "this is a test";
+
+static void test_snprintf(benchmark::State& state)
+{
+    while (state.KeepRunning())
+    {
+        int n = _scprintf("%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        std::string r(n + 1, 0);
+        _snprintf_s(&r[0], n + 1, _TRUNCATE, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        r.pop_back();
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+static void test_snprintf_stackbuf(benchmark::State& state)
+{
+    while (state.KeepRunning())
+    {
+        char buf[512];
+        _snprintf_s(buf, _TRUNCATE, "%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        benchmark::DoNotOptimize(buf);
+    }
+}
+
+static void test_sstream(benchmark::State& state)
+{
+    using namespace std;
+
+    while (state.KeepRunning())
+    {
+        stringstream ss;
+        ss << i << " " << hex << i << dec << " " << ll << " " << hex << ll << dec << " " << d << " " << scientific << d << " " << s;
+        std::string r = ss.str();
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+static void test_fmt(benchmark::State& state)
+{
+    while (state.KeepRunning())
+    {
+        std::string r = fmt::sprintf("%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+static void test_boost_format(benchmark::State& state)
+{
+    using namespace boost;
+    while (state.KeepRunning())
+    {
+        std::string r = (format("%d %X %lld %llX %f %e %s") % i % i % ll % ll % d % d % s).str();
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+static void test_fastformat(benchmark::State& state)
+{
+    while (state.KeepRunning())
+    {
+        std::string r;
+        // Do not know how to format hex and floating point in scientific notion
+        fastformat::fmt(r, "{0} {1} {2} {3} {4} {5} {6}", i, i, ll, ll, d, d, s);
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+static void test_tinyformat(benchmark::State& state)
+{
+    while (state.KeepRunning())
+    {
+        std::string r = tfm::format("%d %X %lld %llX %f %e %s", i, i, ll, ll, d, d, s);
+        benchmark::DoNotOptimize(r.c_str());
+    }
+}
+
+BENCHMARK(test_snprintf);
+BENCHMARK(test_snprintf_stackbuf);
+BENCHMARK(test_sstream);
+BENCHMARK(test_fmt);
+BENCHMARK(test_fastformat);
+BENCHMARK(test_tinyformat);
+
+BENCHMARK_MAIN();
